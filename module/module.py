@@ -252,7 +252,7 @@ class Graphite_broker(BaseModule):
     def manage_service_check_result_brok(self, b):
         host_name = b.data['host_name']
         state_id = b.data['state_id']
-	service_description = b.data['service_description']
+        service_description = b.data['service_description']
         service_id = host_name+"/"+service_description
         logger.debug("[Graphite] service check result: %s", service_id)
 
@@ -303,7 +303,6 @@ class Graphite_broker(BaseModule):
             path = '.'.join((hname, self.graphite_data_source, desc))
         else:
             path = '.'.join((hname, desc))
-	
 
         #Send state to Graphite
         state_query = []
@@ -333,8 +332,7 @@ class Graphite_broker(BaseModule):
     def manage_host_check_result_brok(self, b):
         host_name = b.data['host_name']
         logger.debug("[Graphite] host check result: %s", host_name)
-	
-	state_id = b.data['state_id']
+        state_id = b.data['state_id']
         # If host initial status brok has not been received, ignore ...
         if host_name not in self.hosts_cache:
             logger.warning("[Graphite] received service check result for an unknown host: %s", host_name)
@@ -373,7 +371,7 @@ class Graphite_broker(BaseModule):
         else:
             path = hname
 
-	#Send state to Graphite        
+        #Send state to Graphite        
         state_query = []
         state_query.append("%s.available %s %d" % (path, state_id, check_time))
         state_packet = '\n'.join(state_query) + '\n'
@@ -383,7 +381,7 @@ class Graphite_broker(BaseModule):
         except IOError:
                 logger.error("[Graphite broker] Failed sendind state o the Graphite Carbon.")
 
-	if len(couples) == 0:
+        if len(couples) == 0:
             logger.debug("[Graphite] no metrics to send ...")
             return
 
@@ -403,4 +401,4 @@ class Graphite_broker(BaseModule):
             l = self.to_q.get()
             for b in l:
                 b.prepare()
-		self.manage_brok(b)
+                self.manage_brok(b)

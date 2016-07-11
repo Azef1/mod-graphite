@@ -403,4 +403,4 @@ class Graphite_broker(BaseModule):
             l = self.to_q.get()
             for b in l:
                 b.prepare()
-		        self.manage_brok(b)
+		self.manage_brok(b)

@@ -251,7 +251,8 @@ class Graphite_broker(BaseModule):
     # A service check result brok has just arrived ...
     def manage_service_check_result_brok(self, b):
         host_name = b.data['host_name']
-        service_description = b.data['service_description']
+        state_id = b.data['state_id']
+	service_description = b.data['service_description']
         service_id = host_name+"/"+service_description
         logger.debug("[Graphite] service check result: %s", service_id)
 
@@ -272,9 +273,9 @@ class Graphite_broker(BaseModule):
         couples = self.get_metric_and_value(service_description, b.data['perf_data'])
 
         # If no values, we can exit now
-        if len(couples) == 0:
-            logger.debug("[Graphite] no metrics to send ...")
-            return
+        #if len(couples) == 0:
+        #    logger.debug("[Graphite] no metrics to send ...")
+        #    return
 
         # Custom hosts variables
         hname = self.illegal_char_hostname.sub('_', host_name)
@@ -302,6 +303,22 @@ class Graphite_broker(BaseModule):
             path = '.'.join((hname, self.graphite_data_source, desc))
         else:
             path = '.'.join((hname, desc))
+	
+
+        #Send state to Graphite
+        state_query = []
+        state_query.append("%s.available %s %d" % (path, state_id, check_time))
+        state_packet = '\n'.join(state_query) + '\n'
+        #logger.error("---SERVICE--- %s", state_packet)
+        try:
+                self.send_packet(state_packet)
+        except IOError:
+                logger.error("[Graphite broker] Failed sendind state o the Graphite Carbon.")
+
+        if len(couples) == 0:
+            logger.debug("[Graphite] no metrics to send ...")
+            return
+
 
         lines = []
         # Send a bulk of all metrics at once
@@ -316,7 +333,8 @@ class Graphite_broker(BaseModule):
     def manage_host_check_result_brok(self, b):
         host_name = b.data['host_name']
         logger.debug("[Graphite] host check result: %s", host_name)
-
+	
+	state_id = b.data['state_id']
         # If host initial status brok has not been received, ignore ...
         if host_name not in self.hosts_cache:
             logger.warning("[Graphite] received service check result for an unknown host: %s", host_name)
@@ -326,9 +344,9 @@ class Graphite_broker(BaseModule):
         couples = self.get_metric_and_value('host_check', b.data['perf_data'])
 
         # If no values, we can exit now
-        if len(couples) == 0:
-            logger.debug("[Graphite] no metrics to send ...")
-            return
+        #if len(couples) == 0:
+        #    logger.debug("[Graphite] no metrics to send ...")
+        #    return
 
         # Custom hosts variables
         hname = self.illegal_char_hostname.sub('_', host_name)
@@ -355,6 +373,20 @@ class Graphite_broker(BaseModule):
         else:
             path = hname
 
+	#Send state to Graphite        
+        state_query = []
+        state_query.append("%s.available %s %d" % (path, state_id, check_time))
+        state_packet = '\n'.join(state_query) + '\n'
+        #logger.error("---HOST--- %s", state_packet)
+        try:
+                self.send_packet(state_packet)
+        except IOError:
+                logger.error("[Graphite broker] Failed sendind state o the Graphite Carbon.")
+
+	if len(couples) == 0:
+            logger.debug("[Graphite] no metrics to send ...")
+            return
+
         lines = []
         # Send a bulk of all metrics at once
         for (metric, value) in couples:
@@ -371,4 +403,4 @@ class Graphite_broker(BaseModule):
             l = self.to_q.get()
             for b in l:
                 b.prepare()
-                self.manage_brok(b)
+		        self.manage_brok(b)

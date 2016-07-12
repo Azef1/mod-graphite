@@ -260,6 +260,7 @@ class Graphite_broker(BaseModule):
     def manage_service_check_result_brok(self, b):
         host_name = b.data['host_name']
         state_id = b.data['state_id']
+	last_state_id = b.data['last_state_id']
         service_description = b.data['service_description']
         service_id = host_name+"/"+service_description
         logger.debug("[Graphite] service check result: %s", service_id)
@@ -317,10 +318,11 @@ class Graphite_broker(BaseModule):
         state_query.append("%s.available %s %d" % (path, state_id, check_time))
         state_packet = '\n'.join(state_query) + '\n'
         #logger.error("---SERVICE--- %s", state_packet)
-        if (self.state_enable == 1 and self.state_service == 1):
+        if (self.state_enable == 1 and self.state_service == 1 and state_id != last_state_id):
 		try:
                 	self.send_packet(state_packet)
-        	except IOError:
+			#logger.error("[Graphite broker] -------------- Service %s last: %d | now: %d",path, last_state_id ,state_id)
+		except IOError:
                 	logger.error("[Graphite broker] Failed sending state to the Graphite Carbon.")
 
         if len(couples) == 0:
@@ -338,10 +340,11 @@ class Graphite_broker(BaseModule):
         self.send_packet(packet)
 
     # A host check result brok has just arrived, we UPDATE data info with this
-    def manage_host_check_result_brok(self, b):
-        host_name = b.data['host_name']
+    def manage_host_check_result_brok(self, b):   
+	host_name = b.data['host_name']
         logger.debug("[Graphite] host check result: %s", host_name)
         state_id = b.data['state_id']
+	last_state_id = b.data['last_state_id']
         # If host initial status brok has not been received, ignore ...
         if host_name not in self.hosts_cache:
             logger.warning("[Graphite] received service check result for an unknown host: %s", host_name)
@@ -385,9 +388,11 @@ class Graphite_broker(BaseModule):
         state_query.append("%s.available %s %d" % (path, state_id, check_time))
         state_packet = '\n'.join(state_query) + '\n'
         #logger.error("---HOST--- %s", state_packet)
-        if (self.state_enable == 1 and self.state_host == 1):
+	
+        if (self.state_enable == 1 and self.state_host == 1 and state_id != last_state_id):
 		try:
                 	self.send_packet(state_packet)
+			#logger.error("---HOST STATE SENDING TO GRAPHITE--- previous_state: %d | new_state: %d",last_state_id, state_id)
         	except IOError:
                 	logger.error("[Graphite broker] Failed sending state to the Graphite Carbon.")
         if len(couples) == 0:
